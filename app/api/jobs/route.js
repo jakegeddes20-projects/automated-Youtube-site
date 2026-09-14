@@ -1,6 +1,7 @@
+
 import { NextResponse } from "next/server";
 import { db } from "../../../lib/db";
-import { generatePlaceholderScript } from "../../../lib/placeholder-script";
+import { generateScript } from "../../../lib/script-writer";
 
 export async function GET() {
   const database = db();
@@ -16,9 +17,14 @@ export async function POST(request) {
     return NextResponse.json({ error: "topic is required" }, { status: 400 });
   }
 
-  const database = db();
-  const script = generatePlaceholderScript(topic);
+  let script;
+  try {
+    script = await generateScript(topic);
+  } catch (err) {
+    return NextResponse.json({ error: err.message }, { status: 502 });
+  }
 
+  const database = db();
   const [job] = await database.sql`
     INSERT INTO jobs (topic, status, script)
     VALUES (${topic}, ${"script_ready"}, ${script})
