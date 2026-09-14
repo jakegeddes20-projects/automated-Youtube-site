@@ -17,6 +17,9 @@ function JobCard({ job }) {
         <Badge label="Published" ready={job.publish_status === "done"} />
       </div>
       {job.script && <pre className="script">{job.script}</pre>}
+      {job.voiceover_status === "done" && (
+        <audio controls src={`/api/audio/${job.id}`} style={{ width: "100%", marginTop: "8px" }} />
+      )}
     </div>
   );
 }
