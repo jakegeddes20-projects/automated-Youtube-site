@@ -14,13 +14,17 @@ export async function GET(request, { params }) {
   }
 
   const store = getStore("voiceovers");
-  const audio = await store.get(job.voiceover_key, { type: "arrayBuffer" });
+  const blob = await store.getWithMetadata(job.voiceover_key, { type: "arrayBuffer" });
 
-  if (!audio) {
+  if (!blob) {
     return NextResponse.json({ error: "not found" }, { status: 404 });
   }
 
-  return new NextResponse(audio, {
-    headers: { "Content-Type": "audio/wav" },
+  // The upload route records the format in blob metadata; older blobs
+  // predate that and are all WAV.
+  const contentType = blob.metadata?.contentType || "audio/wav";
+
+  return new NextResponse(blob.data, {
+    headers: { "Content-Type": contentType },
   });
 }
