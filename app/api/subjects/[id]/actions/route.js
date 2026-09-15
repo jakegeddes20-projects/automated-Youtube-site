@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getStore } from "@netlify/blobs";
 import { db } from "../../../../../lib/db";
+import { VOICES } from "../../../../../lib/options";
 import { addEvent, getWorkerStatus, parseId } from "../../../../../lib/queries";
 
 const RUNNING = ["researching", "planning", "writing", "voicing"];
