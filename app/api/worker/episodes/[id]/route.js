@@ -26,6 +26,7 @@ export async function PATCH(request, { params }) {
   const body = await request.json().catch(() => ({}));
   const outline = body.outline ? JSON.stringify(body.outline) : null;
   const chapters = Array.isArray(body.chapters) ? JSON.stringify(body.chapters) : null;
+  const review = body.review && typeof body.review === "object" ? JSON.stringify(body.review) : null;
   const script = body.script ?? null;
   const wordCount = body.script ? body.script.split(/\s+/).filter(Boolean).length : null;
 
@@ -36,6 +37,7 @@ export async function PATCH(request, { params }) {
       outline = COALESCE(${outline}::jsonb, outline),
       script = COALESCE(${script}, script),
       chapters = COALESCE(${chapters}::jsonb, chapters),
+      review = COALESCE(${review}::jsonb, review),
       word_count = COALESCE(${wordCount}, word_count),
       script_status = COALESCE(${body.script_status ?? null}, script_status),
       voiceover_status = COALESCE(${body.voiceover_status ?? null}, voiceover_status),

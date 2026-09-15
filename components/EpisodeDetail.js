@@ -85,6 +85,47 @@ function VoiceComparison({ episode, onChanged }) {
   );
 }
 
+// The reviewer's report: script scores and issues, image checks, and any
+// names the transcriber heard differently (for Jake to confirm).
+function ReviewPanel({ review }) {
+  if (!review) return null;
+  const s = review.script || {};
+  const im = review.images || {};
+  const v = review.voice || {};
+  return (
+    <>
+      <h2>Review</h2>
+      <div className="facts">
+        <div className="fact"><div className="k">Script</div><div className="v">{s.overall != null ? `${s.overall}/10` : "—"}</div></div>
+        <div className="fact"><div className="k">Images</div><div className="v">{im.checked ? `${im.flagged || 0} of ${im.checked} flagged · ${im.rerendered || 0} redone` : "—"}</div></div>
+        <div className="fact"><div className="k">Narration</div><div className="v">{v.suspects ? `${v.suspects.length} name(s) to check` : "—"}</div></div>
+      </div>
+      {s.verdict && <p className="small">{s.verdict}</p>}
+      {review.rewritten?.length > 0 && <p className="small muted">Rewritten and re-recorded after review: chapter{review.rewritten.length > 1 ? "s" : ""} {review.rewritten.join(", ")}.</p>}
+      {s.issues?.length > 0 && (
+        <ul className="log">
+          {s.issues.map((i, k) => <li key={k}><span className={`t ${i.severity === "high" ? "error" : i.severity === "medium" ? "warn" : ""}`}>ch {i.chapter} · {i.severity}</span><span>{i.problem}</span></li>)}
+        </ul>
+      )}
+      {im.examples?.length > 0 && (
+        <details className="plan"><summary>Image problems the reviewer caught ({im.examples.length})</summary><pre>{im.examples.join("\n")}</pre></details>
+      )}
+      {v.suspects?.length > 0 && (
+        <details className="plan" open>
+          <summary>Possible mispronunciations — listen and confirm, then tell Claude the right sound</summary>
+          <pre>{v.suspects.map((x) => `${x.word}  →  heard as "${x.heard_as}"  (${x.count}×)`).join("\n")}</pre>
+        </details>
+      )}
+      {v.rushed?.length > 0 && <p className="small muted">Faster-than-usual chapters: {v.rushed.map((r) => `ch ${r.chapter} (${r.wpm} wpm)`).join(", ")}</p>}
+      {(s.worked?.length > 0 || s.avoid?.length > 0) && (
+        <details className="plan"><summary>Lessons recorded for future episodes</summary>
+          <pre>{[...(s.worked || []).map((w) => `Keep: ${w}`), ...(s.avoid || []).map((a) => `Avoid: ${a}`)].join("\n")}</pre>
+        </details>
+      )}
+    </>
+  );
+}
+
 export default function EpisodeDetail({ id }) {
   const { data, error, reload } = usePolling(`/api/episodes/${id}`, 8000);
   if (error) return <p className="error">Could not load this episode ({error}).</p>;
@@ -112,6 +153,8 @@ export default function EpisodeDetail({ id }) {
       </div>
 
       {episode.error && <div className="error-box">{episode.error}</div>}
+
+      <ReviewPanel review={episode.review} />
 
       {episode.voiceover_key && (
         <>
