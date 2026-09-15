@@ -37,7 +37,7 @@ function VoiceComparison({ episode, onChanged }) {
   const [message, setMessage] = useState(null);
   const available = Array.isArray(episode.voice_previews) ? episode.voice_previews : [];
   const others = VOICES.filter((v) => v.id !== episode.voice);
-  const busySubject = ["queued", "researching", "planning", "writing", "voicing"].includes(episode.subject_status);
+  const busySubject = ["queued", "researching", "planning", "writing", "voicing", "producing"].includes(episode.subject_status);
 
   async function useVoice(voice) {
     if (!window.confirm(`Re-record every episode of this subject with ${voice.label}? The scripts stay exactly as they are.`)) return;
@@ -108,6 +108,7 @@ export default function EpisodeDetail({ id }) {
         <div className="fact"><div className="k">Voice-over</div><div className="v">{episode.voiceover_status === "done" ? `${fmtDuration(episode.voiceover_seconds)} · ${episode.voice}` : episode.voiceover_status}</div></div>
         <div className="fact"><div className="k">Style</div><div className="v">{episode.style?.replace("_", " ")}</div></div>
         {episode.output_dir && <div className="fact"><div className="k">Folder on your PC</div><div className="v path">{episode.output_dir}</div></div>}
+        {episode.video_status === "done" && <div className="fact"><div className="k">Video</div><div className="v path">{episode.output_dir}ideo.mp4</div></div>}
       </div>
 
       {episode.error && <div className="error-box">{episode.error}</div>}

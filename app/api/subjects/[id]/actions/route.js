@@ -4,7 +4,7 @@ import { db } from "../../../../../lib/db";
 import { VOICES } from "../../../../../lib/options";
 import { addEvent, getWorkerStatus, parseId } from "../../../../../lib/queries";
 
-const RUNNING = ["researching", "planning", "writing", "voicing"];
+const RUNNING = ["researching", "planning", "writing", "voicing", "producing"];
 
 // Queue controls from the dashboard: pause, resume, cancel, retry, move up,
 // delete. The worker never fights these — it re-reads the subject between
@@ -60,7 +60,8 @@ export async function POST(request, { params }) {
       await database.sql`
         UPDATE episodes SET error = NULL,
           script_status = CASE WHEN script_status IN ('failed', 'writing') THEN 'pending' ELSE script_status END,
-          voiceover_status = CASE WHEN voiceover_status IN ('failed', 'rendering') THEN 'pending' ELSE voiceover_status END
+          voiceover_status = CASE WHEN voiceover_status IN ('failed', 'rendering') THEN 'pending' ELSE voiceover_status END,
+          video_status = CASE WHEN video_status IN ('failed', 'producing') THEN 'pending' ELSE video_status END
         WHERE subject_id = ${subject.id}
       `;
       await addEvent({ subjectId: subject.id, message: "Retrying — will pick up from the last completed stage." });

@@ -5,7 +5,7 @@ import SubjectCard from "./SubjectCard";
 import WorkerPill from "./WorkerPill";
 import usePolling from "./usePolling";
 
-const ACTIVE = ["researching", "planning", "writing", "voicing", "queued", "paused", "failed"];
+const ACTIVE = ["researching", "planning", "writing", "voicing", "producing", "queued", "paused", "failed"];
 
 export default function Dashboard() {
   const { data, error, reload } = usePolling("/api/subjects", 5000);

@@ -18,7 +18,7 @@ export async function GET() {
       FROM subjects
       ORDER BY
         CASE status
-          WHEN 'researching' THEN 0 WHEN 'planning' THEN 0 WHEN 'writing' THEN 0 WHEN 'voicing' THEN 0
+          WHEN 'researching' THEN 0 WHEN 'planning' THEN 0 WHEN 'writing' THEN 0 WHEN 'voicing' THEN 0 WHEN 'producing' THEN 0
           WHEN 'queued' THEN 1 WHEN 'paused' THEN 2 WHEN 'failed' THEN 3
           ELSE 4
         END,

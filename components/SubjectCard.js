@@ -5,7 +5,7 @@ import { useState } from "react";
 import { VOICES } from "../lib/options";
 import StageBar from "./StageBar";
 
-const RUNNING = ["researching", "planning", "writing", "voicing"];
+const RUNNING = ["researching", "planning", "writing", "voicing", "producing"];
 
 export const STATUS_LABELS = {
   queued: "Queued",
@@ -13,6 +13,7 @@ export const STATUS_LABELS = {
   planning: "Planning episodes",
   writing: "Writing",
   voicing: "Recording voice-over",
+  producing: "Making the video",
   done: "Done",
   failed: "Failed",
   paused: "Paused",
