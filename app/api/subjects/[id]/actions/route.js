@@ -88,6 +88,18 @@ export async function POST(request, { params }) {
       await addEvent({ subjectId: subject.id, message: `Re-recording every episode with the voice "${label}".` });
       break;
     }
+    case "set_voice": {
+      // Change the voice of a subject that hasn't recorded yet; the worker
+      // reads the voice fresh when it reaches the recording stage.
+      const voice = String(body.voice || "");
+      if (!VOICES.some((v) => v.id === voice)) return fail("Pick a voice from the list.");
+      if (!["queued", "paused", "researching", "planning", "writing"].includes(subject.status)) {
+        return fail("Recording has already started — use \"Use this voice\" on an episode page instead.");
+      }
+      await database.sql`UPDATE subjects SET voice = ${voice}, updated_at = NOW() WHERE id = ${subject.id}`;
+      await addEvent({ subjectId: subject.id, message: `Voice changed to "${VOICES.find((v) => v.id === voice).label}".` });
+      break;
+    }
     case "move_up": {
       if (subject.status !== "queued") return fail("Only a queued subject can be moved.");
       const [above] = await database.sql`

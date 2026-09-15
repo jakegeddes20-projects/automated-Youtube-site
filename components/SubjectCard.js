@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { VOICES } from "../lib/options";
 import StageBar from "./StageBar";
 
 const RUNNING = ["researching", "planning", "writing", "voicing"];
@@ -66,7 +67,7 @@ export default function SubjectCard({ subject, onChanged, workerOnline = true })
   const [error, setError] = useState(null);
   const s = subject.status;
 
-  async function act(action) {
+  async function act(action, extra = {}) {
     if (action === "delete" && !window.confirm("Delete this subject and its episodes from the site? Files on the PC are not touched.")) return;
     setBusy(action);
     setError(null);
@@ -74,7 +75,7 @@ export default function SubjectCard({ subject, onChanged, workerOnline = true })
       const res = await fetch(`/api/subjects/${subject.id}/actions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action }),
+        body: JSON.stringify({ action, ...extra }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "That didn't work.");
@@ -95,6 +96,22 @@ export default function SubjectCard({ subject, onChanged, workerOnline = true })
           <div className="card-meta">
             {subject.videos_per_subject} × {subject.episode_minutes} min · {subject.style.replace("_", " ")} ·{" "}
             {new Date(subject.created_at).toLocaleString()}
+            {" · "}
+            {["queued", "paused", "researching", "planning", "writing"].includes(s) ? (
+              <label>
+                voice{" "}
+                <select
+                  className="inline"
+                  value={subject.voice}
+                  disabled={busy !== null}
+                  onChange={(e) => act("set_voice", { voice: e.target.value })}
+                >
+                  {VOICES.map((v) => <option key={v.id} value={v.id}>{v.label}</option>)}
+                </select>
+              </label>
+            ) : (
+              <>voice {VOICES.find((v) => v.id === subject.voice)?.label || subject.voice}</>
+            )}
           </div>
         </div>
         <span className={`status ${statusClass(s)}`}>{STATUS_LABELS[s] || s}</span>

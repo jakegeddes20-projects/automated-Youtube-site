@@ -255,3 +255,5 @@ audio { width: 100%; margin-top: 8px; }
 .voice-card { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
 .voice-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-weight: 500; }
 .voice-card audio { margin-top: 6px; }
+
+select.inline { padding: 2px 6px; font-size: 0.8rem; border-radius: 6px; }
