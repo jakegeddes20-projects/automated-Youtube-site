@@ -121,6 +121,7 @@ export default function SubjectCard({ subject, onChanged, workerOnline = true })
           {(s === "queued" || RUNNING.includes(s)) && <ActionButton action="pause" label="Pause" busy={busy} onAct={act} />}
           {s === "paused" && <ActionButton action="resume" label="Resume" busy={busy} onAct={act} />}
           {(s === "failed" || s === "cancelled" || (RUNNING.includes(s) && !workerOnline)) && <ActionButton action="retry" label="Retry" busy={busy} onAct={act} />}
+          {s === "done" && <ActionButton action="retry" label="Re-run missing stages" busy={busy} onAct={act} />}
           {s !== "done" && s !== "cancelled" && <ActionButton action="cancel" label="Cancel" danger busy={busy} onAct={act} />}
           {!RUNNING.includes(s) && <ActionButton action="delete" label="Delete" danger busy={busy} onAct={act} />}
         </div>

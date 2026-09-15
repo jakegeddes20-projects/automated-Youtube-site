@@ -48,9 +48,12 @@ export async function POST(request, { params }) {
     case "retry": {
       // A subject that looks "running" while the PC is offline was interrupted
       // (crash, lost connection); allow it to be re-queued from here too.
+      // A finished subject can be re-run too: the worker skips every stage
+      // that is already done, so this only fills in stages added since
+      // (e.g. the video and review for an older episode).
       const stuck = RUNNING.includes(subject.status) && !(await getWorkerStatus()).online;
-      if (subject.status !== "failed" && subject.status !== "cancelled" && !stuck) {
-        return fail("Only a failed, cancelled or interrupted subject can be retried.");
+      if (!["failed", "cancelled", "done"].includes(subject.status) && !stuck) {
+        return fail("Only a failed, cancelled, finished or interrupted subject can be re-run.");
       }
       await database.sql`
         UPDATE subjects SET status = 'queued', error = NULL, stage_detail = NULL,
