@@ -65,6 +65,28 @@ export async function POST(request, { params }) {
       await addEvent({ subjectId: subject.id, message: "Retrying — will pick up from the last completed stage." });
       break;
     }
+    case "rerecord": {
+      // "Use this voice" from the episode page: keep every script, re-record
+      // the narration in a different voice. The worker skips writing (already
+      // done) and re-renders only because the voice no longer matches.
+      const voice = String(body.voice || "");
+      if (!VOICES.some((v) => v.id === voice)) return fail("Pick a voice from the list.");
+      if (RUNNING.includes(subject.status) || subject.status === "queued") {
+        return fail("Wait for this subject to finish (or pause it) before changing the voice.");
+      }
+      await database.sql`
+        UPDATE subjects SET voice = ${voice}, status = 'queued', error = NULL, stage_detail = NULL,
+          finished_at = NULL, updated_at = NOW()
+        WHERE id = ${subject.id}
+      `;
+      await database.sql`
+        UPDATE episodes SET voiceover_status = 'pending', voiceover_seconds = NULL, error = NULL, updated_at = NOW()
+        WHERE subject_id = ${subject.id}
+      `;
+      const label = VOICES.find((v) => v.id === voice).label;
+      await addEvent({ subjectId: subject.id, message: `Re-recording every episode with the voice "${label}".` });
+      break;
+    }
     case "move_up": {
       if (subject.status !== "queued") return fail("Only a queued subject can be moved.");
       const [above] = await database.sql`
@@ -81,10 +103,13 @@ export async function POST(request, { params }) {
     }
     case "delete": {
       if (RUNNING.includes(subject.status)) return fail("Cancel it first, then delete.");
-      const episodes = await database.sql`SELECT voiceover_key FROM episodes WHERE subject_id = ${subject.id}`;
+      const episodes = await database.sql`SELECT id, voiceover_key, voice_previews FROM episodes WHERE subject_id = ${subject.id}`;
       const store = getStore("voiceovers");
       for (const ep of episodes) {
         if (ep.voiceover_key) await store.delete(ep.voiceover_key).catch(() => {});
+        for (const voice of Array.isArray(ep.voice_previews) ? ep.voice_previews : []) {
+          await store.delete(`episode-${ep.id}-preview-${voice}.mp3`).catch(() => {});
+        }
       }
       await database.sql`DELETE FROM subjects WHERE id = ${subject.id}`;
       return NextResponse.json({ ok: true, deleted: true });

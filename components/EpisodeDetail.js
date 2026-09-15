@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
+import { VOICES } from "../lib/options";
 import EventLog from "./EventLog";
 import StageBar from "./StageBar";
 import usePolling from "./usePolling";
@@ -28,8 +30,63 @@ function chaptersOf(episode) {
   return [{ title: null, paragraphs: paragraphsOf(episode.script) }];
 }
 
+// The same 90-second opening read in each other voice, with a button to
+// re-record the whole subject in that voice.
+function VoiceComparison({ episode, onChanged }) {
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState(null);
+  const available = Array.isArray(episode.voice_previews) ? episode.voice_previews : [];
+  const others = VOICES.filter((v) => v.id !== episode.voice);
+  const busySubject = ["queued", "researching", "planning", "writing", "voicing"].includes(episode.subject_status);
+
+  async function useVoice(voice) {
+    if (!window.confirm(`Re-record every episode of this subject with ${voice.label}? The scripts stay exactly as they are.`)) return;
+    setBusy(true);
+    setMessage(null);
+    try {
+      const res = await fetch(`/api/subjects/${episode.subject_id}/actions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "rerecord", voice: voice.id }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "That didn't work.");
+      setMessage(`Queued — re-recording with ${voice.label}.`);
+      onChanged?.();
+    } catch (err) {
+      setMessage(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!available.length) {
+    return <p className="small muted">Other-voice previews appear here once the narration is recorded.</p>;
+  }
+  return (
+    <>
+      {message && <p className="small" style={{ color: "var(--accent)" }}>{message}</p>}
+      <div className="voice-grid">
+        {others.map((v) => (
+          <div className="voice-card" key={v.id}>
+            <div className="voice-head">
+              <span>{v.label}</span>
+              {available.includes(v.id) && (
+                <button className="secondary" disabled={busy || busySubject} onClick={() => useVoice(v)}>Use this voice</button>
+              )}
+            </div>
+            {available.includes(v.id)
+              ? <audio controls preload="none" src={`/api/audio/${episode.id}?voice=${v.id}`} />
+              : <p className="small muted" style={{ margin: "6px 0 0" }}>Not recorded yet.</p>}
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
 export default function EpisodeDetail({ id }) {
-  const { data, error } = usePolling(`/api/episodes/${id}`, 8000);
+  const { data, error, reload } = usePolling(`/api/episodes/${id}`, 8000);
   if (error) return <p className="error">Could not load this episode ({error}).</p>;
   if (!data) return <p className="muted">Loading…</p>;
 
@@ -60,6 +117,10 @@ export default function EpisodeDetail({ id }) {
           <h2>Listen (first 90 seconds)</h2>
           <audio controls preload="none" src={`/api/audio/${episode.id}`} />
           <p className="small muted">The full narration is in the episode folder on your PC as voiceover.mp3 (and voiceover.wav, full quality).</p>
+
+          <h2>Compare voices</h2>
+          <p className="small muted">The same opening, read by each of the other voices. Current voice: <b>{VOICES.find((v) => v.id === episode.voice)?.label || episode.voice}</b>.</p>
+          <VoiceComparison episode={episode} onChanged={reload} />
         </>
       )}
 
