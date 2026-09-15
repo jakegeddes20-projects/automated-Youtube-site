@@ -49,6 +49,17 @@ export function EpisodeRow({ episode }) {
   );
 }
 
+// Defined at module level (not inside SubjectCard) so React keeps the same
+// button elements across the 5-second polls; otherwise every refresh
+// remounts them and a click can land on a button that no longer exists.
+function ActionButton({ action, label, danger, busy, onAct }) {
+  return (
+    <button className={`secondary ${danger ? "danger" : ""}`} disabled={busy !== null} onClick={() => onAct(action)}>
+      {busy === action ? "…" : label}
+    </button>
+  );
+}
+
 // One subject in the queue: its status, controls, and its episodes.
 export default function SubjectCard({ subject, onChanged, workerOnline = true }) {
   const [busy, setBusy] = useState(null);
@@ -75,11 +86,6 @@ export default function SubjectCard({ subject, onChanged, workerOnline = true })
     }
   }
 
-  const Btn = ({ action, label, danger }) => (
-    <button className={`secondary ${danger ? "danger" : ""}`} disabled={busy !== null} onClick={() => act(action)}>
-      {busy === action ? "…" : label}
-    </button>
-  );
 
   return (
     <div className="card">
@@ -93,12 +99,12 @@ export default function SubjectCard({ subject, onChanged, workerOnline = true })
         </div>
         <span className={`status ${statusClass(s)}`}>{STATUS_LABELS[s] || s}</span>
         <div className="card-actions">
-          {s === "queued" && <Btn action="move_up" label="Move up" />}
-          {(s === "queued" || RUNNING.includes(s)) && <Btn action="pause" label="Pause" />}
-          {s === "paused" && <Btn action="resume" label="Resume" />}
-          {(s === "failed" || s === "cancelled" || (RUNNING.includes(s) && !workerOnline)) && <Btn action="retry" label="Retry" />}
-          {s !== "done" && s !== "cancelled" && <Btn action="cancel" label="Cancel" danger />}
-          {!RUNNING.includes(s) && <Btn action="delete" label="Delete" danger />}
+          {s === "queued" && <ActionButton action="move_up" label="Move up" busy={busy} onAct={act} />}
+          {(s === "queued" || RUNNING.includes(s)) && <ActionButton action="pause" label="Pause" busy={busy} onAct={act} />}
+          {s === "paused" && <ActionButton action="resume" label="Resume" busy={busy} onAct={act} />}
+          {(s === "failed" || s === "cancelled" || (RUNNING.includes(s) && !workerOnline)) && <ActionButton action="retry" label="Retry" busy={busy} onAct={act} />}
+          {s !== "done" && s !== "cancelled" && <ActionButton action="cancel" label="Cancel" danger busy={busy} onAct={act} />}
+          {!RUNNING.includes(s) && <ActionButton action="delete" label="Delete" danger busy={busy} onAct={act} />}
         </div>
       </div>
 
