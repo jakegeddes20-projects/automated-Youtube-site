@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
+import { parseId } from "../../../../lib/queries";
 import { getStore } from "@netlify/blobs";
 import { db } from "../../../../lib/db";
 
 // Streams an episode's narration preview to the dashboard's <audio> player.
 export async function GET(request, { params }) {
-  const [episode] = await db().sql`SELECT voiceover_key FROM episodes WHERE id = ${params.id}`;
+  const id = parseId(params.id);
+  if (!id) return NextResponse.json({ error: "not found" }, { status: 404 });
+
+  const [episode] = await db().sql`SELECT voiceover_key FROM episodes WHERE id = ${id}`;
   if (!episode || !episode.voiceover_key) {
     return NextResponse.json({ error: "not found" }, { status: 404 });
   }

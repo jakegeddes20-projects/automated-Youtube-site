@@ -1,14 +1,18 @@
 import "./globals.css";
+import SiteNav from "../components/SiteNav";
 
 export const metadata = {
-  title: "Content Pipeline Agent",
-  description: "AI-assisted research → script → voice → video → publish pipeline",
+  title: "Content Pipeline",
+  description: "Type a subject; get finished long-form videos.",
 };
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <SiteNav />
+        {children}
+      </body>
     </html>
   );
 }

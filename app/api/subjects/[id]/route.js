@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
-import { getEvents, getSubjectWithEpisodes } from "../../../../lib/queries";
+import { getEvents, getSubjectWithEpisodes, parseId } from "../../../../lib/queries";
 
 // Subject detail: settings, research brief, series plan, episodes and log.
 export async function GET(request, { params }) {
-  const subject = await getSubjectWithEpisodes(params.id);
+  const id = parseId(params.id);
+  if (!id) return NextResponse.json({ error: "not found" }, { status: 404 });
+
+  const subject = await getSubjectWithEpisodes(id);
   if (!subject) return NextResponse.json({ error: "not found" }, { status: 404 });
 
   const events = await getEvents({ subjectId: subject.id, limit: 100 });

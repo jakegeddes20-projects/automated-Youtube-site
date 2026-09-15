@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getStore } from "@netlify/blobs";
 import { db } from "../../../../../lib/db";
-import { addEvent } from "../../../../../lib/queries";
+import { addEvent, getWorkerStatus, parseId } from "../../../../../lib/queries";
 
 const RUNNING = ["researching", "planning", "writing", "voicing"];
 
@@ -9,11 +9,14 @@ const RUNNING = ["researching", "planning", "writing", "voicing"];
 // delete. The worker never fights these — it re-reads the subject between
 // stages (and between chapters) and stops when it sees paused/cancelled.
 export async function POST(request, { params }) {
+  const id = parseId(params.id);
+  if (!id) return NextResponse.json({ error: "not found" }, { status: 404 });
+
   const body = await request.json().catch(() => ({}));
   const action = String(body.action || "");
   const database = db();
 
-  const [subject] = await database.sql`SELECT id, status, position FROM subjects WHERE id = ${params.id}`;
+  const [subject] = await database.sql`SELECT id, status, position FROM subjects WHERE id = ${id}`;
   if (!subject) return NextResponse.json({ error: "not found" }, { status: 404 });
 
   const fail = (msg) => NextResponse.json({ error: msg }, { status: 409 });
@@ -42,8 +45,11 @@ export async function POST(request, { params }) {
       break;
     }
     case "retry": {
-      if (subject.status !== "failed" && subject.status !== "cancelled") {
-        return fail("Only a failed or cancelled subject can be retried.");
+      // A subject that looks "running" while the PC is offline was interrupted
+      // (crash, lost connection); allow it to be re-queued from here too.
+      const stuck = RUNNING.includes(subject.status) && !(await getWorkerStatus()).online;
+      if (subject.status !== "failed" && subject.status !== "cancelled" && !stuck) {
+        return fail("Only a failed, cancelled or interrupted subject can be retried.");
       }
       await database.sql`
         UPDATE subjects SET status = 'queued', error = NULL, stage_detail = NULL,
@@ -52,8 +58,8 @@ export async function POST(request, { params }) {
       `;
       await database.sql`
         UPDATE episodes SET error = NULL,
-          script_status = CASE WHEN script_status = 'failed' THEN 'pending' ELSE script_status END,
-          voiceover_status = CASE WHEN voiceover_status = 'failed' THEN 'pending' ELSE voiceover_status END
+          script_status = CASE WHEN script_status IN ('failed', 'writing') THEN 'pending' ELSE script_status END,
+          voiceover_status = CASE WHEN voiceover_status IN ('failed', 'rendering') THEN 'pending' ELSE voiceover_status END
         WHERE subject_id = ${subject.id}
       `;
       await addEvent({ subjectId: subject.id, message: "Retrying — will pick up from the last completed stage." });

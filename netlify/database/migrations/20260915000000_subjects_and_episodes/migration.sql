@@ -49,6 +49,8 @@ CREATE TABLE IF NOT EXISTS episodes (
   updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
   UNIQUE (subject_id, position)
 );
+-- Chapter texts as a JSON array, so the dashboard can show real chapter breaks.
+ALTER TABLE episodes ADD COLUMN IF NOT EXISTS chapters JSONB;
 
 CREATE TABLE IF NOT EXISTS events (
   id SERIAL PRIMARY KEY,

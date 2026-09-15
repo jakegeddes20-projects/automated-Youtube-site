@@ -1,14 +1,17 @@
 import { NextResponse } from "next/server";
 import { db } from "../../../../../lib/db";
-import { getSubjectWithEpisodes } from "../../../../../lib/queries";
+import { getSubjectWithEpisodes, parseId } from "../../../../../lib/queries";
 import { isWorkerAuthorized, unauthorized } from "../../../../../lib/worker-auth";
 
 // GET: the worker re-reads a subject between stages to notice a pause or
 // cancel requested from the dashboard.
 export async function GET(request, { params }) {
+  const id = parseId(params.id);
+  if (!id) return NextResponse.json({ error: "not found" }, { status: 404 });
+
   if (!isWorkerAuthorized(request)) return unauthorized();
 
-  const subject = await getSubjectWithEpisodes(params.id);
+  const subject = await getSubjectWithEpisodes(id);
   if (!subject) return NextResponse.json({ error: "not found" }, { status: 404 });
   return NextResponse.json({ subject });
 }
@@ -16,6 +19,9 @@ export async function GET(request, { params }) {
 // PATCH: the worker reports stage changes and stage outputs. Every field is
 // optional; anything omitted is left as it was (COALESCE keeps the old value).
 export async function PATCH(request, { params }) {
+  const id = parseId(params.id);
+  if (!id) return NextResponse.json({ error: "not found" }, { status: 404 });
+
   if (!isWorkerAuthorized(request)) return unauthorized();
 
   const body = await request.json().catch(() => ({}));
@@ -46,7 +52,7 @@ export async function PATCH(request, { params }) {
       output_dir = COALESCE(${outputDir}, output_dir),
       finished_at = CASE WHEN ${finished} THEN NOW() ELSE finished_at END,
       updated_at = NOW()
-    WHERE id = ${params.id}
+    WHERE id = ${id}
     RETURNING id, status, stage_detail
   `;
 

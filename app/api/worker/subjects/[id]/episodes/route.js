@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { parseId } from "../../../../../../lib/queries";
 import { db } from "../../../../../../lib/db";
 import { isWorkerAuthorized, unauthorized } from "../../../../../../lib/worker-auth";
 
@@ -6,6 +7,9 @@ import { isWorkerAuthorized, unauthorized } from "../../../../../../lib/worker-a
 // exists. Re-posting (after a retry) updates titles/angles/outlines in place
 // and keeps any scripts already written.
 export async function POST(request, { params }) {
+  const id = parseId(params.id);
+  if (!id) return NextResponse.json({ error: "not found" }, { status: 404 });
+
   if (!isWorkerAuthorized(request)) return unauthorized();
 
   const body = await request.json().catch(() => ({}));
@@ -24,7 +28,7 @@ export async function POST(request, { params }) {
     const outline = ep.outline ? JSON.stringify(ep.outline) : null;
     const [row] = await database.sql`
       INSERT INTO episodes (subject_id, position, title, angle, outline)
-      VALUES (${params.id}, ${position}, ${ep.title ?? null}, ${ep.angle ?? null}, ${outline}::jsonb)
+      VALUES (${id}, ${position}, ${ep.title ?? null}, ${ep.angle ?? null}, ${outline}::jsonb)
       ON CONFLICT (subject_id, position) DO UPDATE SET
         title = COALESCE(EXCLUDED.title, episodes.title),
         angle = COALESCE(EXCLUDED.angle, episodes.angle),
