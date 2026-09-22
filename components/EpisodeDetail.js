@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import adminFetch from "../lib/admin-client";
 import { VOICES } from "../lib/options";
 import EventLog from "./EventLog";
 import StageBar from "./StageBar";
@@ -44,7 +45,7 @@ function VoiceComparison({ episode, onChanged }) {
     setBusy(true);
     setMessage(null);
     try {
-      const res = await fetch(`/api/subjects/${episode.subject_id}/actions`, {
+      const res = await adminFetch(`/api/subjects/${episode.subject_id}/actions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "rerecord", voice: voice.id }),
@@ -149,7 +150,7 @@ export default function EpisodeDetail({ id }) {
         <div className="fact"><div className="k">Voice-over</div><div className="v">{episode.voiceover_status === "done" ? `${fmtDuration(episode.voiceover_seconds)} · ${episode.voice}` : episode.voiceover_status}</div></div>
         <div className="fact"><div className="k">Style</div><div className="v">{episode.style?.replace("_", " ")}</div></div>
         {episode.output_dir && <div className="fact"><div className="k">Folder on your PC</div><div className="v path">{episode.output_dir}</div></div>}
-        {episode.video_status === "done" && <div className="fact"><div className="k">Video</div><div className="v path">{episode.output_dir}ideo.mp4</div></div>}
+        {episode.video_status === "done" && <div className="fact"><div className="k">Video</div><div className="v path">{episode.output_dir}{"\\video.mp4"}</div></div>}
       </div>
 
       {episode.error && <div className="error-box">{episode.error}</div>}
