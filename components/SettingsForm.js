@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import adminFetch from "../lib/admin-client";
 import { EPISODE_MINUTES, STYLES, VIDEOS_PER_SUBJECT, VOICES } from "../lib/options";
 
 export default function SettingsForm() {
@@ -9,6 +10,7 @@ export default function SettingsForm() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    // Reading the defaults is public; only saving them needs the password.
     fetch("/api/settings").then((r) => r.json()).then((d) => setSettings(d.settings)).catch(() => setError("Could not load settings."));
   }, []);
 
@@ -16,15 +18,19 @@ export default function SettingsForm() {
     e.preventDefault();
     setSaved(false);
     setError(null);
-    const res = await fetch("/api/settings", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(settings),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) return setError(data.error || "Could not save.");
-    setSettings(data.settings);
-    setSaved(true);
+    try {
+      const res = await adminFetch("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(settings),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) return setError(data.error || "Could not save.");
+      setSettings(data.settings);
+      setSaved(true);
+    } catch (err) {
+      setError(err.message);
+    }
   }
 
   if (!settings) return <p className="muted">{error || "Loading…"}</p>;

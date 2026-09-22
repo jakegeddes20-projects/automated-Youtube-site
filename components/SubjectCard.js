@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import adminFetch from "../lib/admin-client";
 import { VOICES } from "../lib/options";
 import StageBar from "./StageBar";
 
@@ -73,7 +74,7 @@ export default function SubjectCard({ subject, onChanged, workerOnline = true })
     setBusy(action);
     setError(null);
     try {
-      const res = await fetch(`/api/subjects/${subject.id}/actions`, {
+      const res = await adminFetch(`/api/subjects/${subject.id}/actions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action, ...extra }),
