@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getStore } from "@netlify/blobs";
+import { isAdminAuthorized, unauthorized } from "../../../../../lib/admin-auth";
 import { db } from "../../../../../lib/db";
 import { VOICES } from "../../../../../lib/options";
 import { addEvent, getWorkerStatus, parseId } from "../../../../../lib/queries";
@@ -9,7 +10,11 @@ const RUNNING = ["researching", "planning", "writing", "voicing", "producing"];
 // Queue controls from the dashboard: pause, resume, cancel, retry, move up,
 // delete. The worker never fights these — it re-reads the subject between
 // stages (and between chapters) and stops when it sees paused/cancelled.
+// All of these change the queue (and retry/rerecord spend money on the PC),
+// so they need the ADMIN_TOKEN Bearer token.
 export async function POST(request, { params }) {
+  if (!isAdminAuthorized(request)) return unauthorized();
+
   const id = parseId(params.id);
   if (!id) return NextResponse.json({ error: "not found" }, { status: 404 });
 
