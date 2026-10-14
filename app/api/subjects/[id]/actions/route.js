@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { getStore } from "@netlify/blobs";
 import { db } from "../../../../../lib/db";
 import { VOICES } from "../../../../../lib/options";
 import { addEvent, getWorkerStatus, parseId } from "../../../../../lib/queries";
@@ -120,14 +119,14 @@ export async function POST(request, { params }) {
     }
     case "delete": {
       if (RUNNING.includes(subject.status)) return fail("Cancel it first, then delete.");
-      const episodes = await database.sql`SELECT id, voiceover_key, voice_previews FROM episodes WHERE subject_id = ${subject.id}`;
-      const store = getStore("voiceovers");
-      for (const ep of episodes) {
-        if (ep.voiceover_key) await store.delete(ep.voiceover_key).catch(() => {});
-        for (const voice of Array.isArray(ep.voice_previews) ? ep.voice_previews : []) {
-          await store.delete(`episode-${ep.id}-preview-${voice}.mp3`).catch(() => {});
-        }
-      }
+      // Previews live in their own table (no foreign key), so clear them
+      // before the cascade removes the episodes they belong to.
+      await database.sql`
+        DELETE FROM previews
+        WHERE key LIKE ANY (
+          SELECT 'episode-' || id || '-preview%' FROM episodes WHERE subject_id = ${subject.id}
+        )
+      `;
       await database.sql`DELETE FROM subjects WHERE id = ${subject.id}`;
       return NextResponse.json({ ok: true, deleted: true });
     }

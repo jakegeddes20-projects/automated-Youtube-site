@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { getStore } from "@netlify/blobs";
 import { db } from "../../../../../../lib/db";
 import { VOICES } from "../../../../../../lib/options";
 import { parseId } from "../../../../../../lib/queries";
@@ -13,7 +12,7 @@ function previewKey(id, voice) {
 // it is the episode's own narration (in the subject's chosen voice); with
 // ?voice=<id> it is the same opening read in an alternative voice, for the
 // "compare voices" section. Full-length audio stays on the PC: this runs on
-// a Netlify Function, which rejects bodies over ~4.5 MB.
+// a serverless function, which rejects bodies over ~4.5 MB.
 export async function POST(request, { params }) {
   const id = parseId(params.id);
   if (!id) return NextResponse.json({ error: "not found" }, { status: 404 });
@@ -34,7 +33,12 @@ export async function POST(request, { params }) {
   }
 
   const key = previewKey(id, voice);
-  await getStore("voiceovers").set(key, audio, { metadata: { contentType } });
+  await db().sql`
+    INSERT INTO previews (key, content_type, data_base64, updated_at)
+    VALUES (${key}, ${contentType}, ${audio.toString("base64")}, NOW())
+    ON CONFLICT (key) DO UPDATE
+      SET content_type = EXCLUDED.content_type, data_base64 = EXCLUDED.data_base64, updated_at = NOW()
+  `;
 
   const database = db();
   let episode;

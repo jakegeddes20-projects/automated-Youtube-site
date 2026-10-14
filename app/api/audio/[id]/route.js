@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { getStore } from "@netlify/blobs";
 import { db } from "../../../../lib/db";
 import { VOICES } from "../../../../lib/options";
 import { parseId } from "../../../../lib/queries";
@@ -25,12 +24,12 @@ export async function GET(request, { params }) {
   }
   if (!key) return NextResponse.json({ error: "not found" }, { status: 404 });
 
-  const blob = await getStore("voiceovers").getWithMetadata(key, { type: "arrayBuffer" });
+  const [blob] = await db().sql`SELECT content_type, data_base64 FROM previews WHERE key = ${key}`;
   if (!blob) return NextResponse.json({ error: "not found" }, { status: 404 });
 
-  return new NextResponse(blob.data, {
+  return new NextResponse(Buffer.from(blob.data_base64, "base64"), {
     headers: {
-      "Content-Type": blob.metadata?.contentType || "audio/mpeg",
+      "Content-Type": blob.content_type || "audio/mpeg",
       "Cache-Control": "private, max-age=3600",
     },
   });
