@@ -2,12 +2,14 @@ import { NextResponse } from "next/server";
 
 // Always read live from the database; never prerender at build time.
 export const dynamic = "force-dynamic";
+import { isAdminAuthorized, unauthorized } from "../../../lib/admin-auth";
 import { db } from "../../../lib/db";
 import { normalizeSettings } from "../../../lib/options";
 import { addEvent, getSettings, getWorkerStatus } from "../../../lib/queries";
 
 // GET: everything the home page needs in one request — the queue with each
 // subject's episodes, plus worker status and the saved default settings.
+// Public: Oracle and the dashboard read it.
 export async function GET() {
   const database = db();
   const [subjects, episodes, worker, settings] = await Promise.all([
@@ -52,7 +54,11 @@ export async function GET() {
 
 // POST: "type a subject, press Go". Creates a queued subject at the back of
 // the queue using the four settings (falling back to the saved defaults).
+// Queuing a subject spends Jake's OpenAI credit on his PC, so it needs the
+// ADMIN_TOKEN Bearer token.
 export async function POST(request) {
+  if (!isAdminAuthorized(request)) return unauthorized();
+
   const body = await request.json().catch(() => ({}));
   const prompt = String(body.prompt || "").trim();
   if (!prompt) {

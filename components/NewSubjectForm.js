@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import adminFetch from "../lib/admin-client";
 import { EPISODE_MINUTES, STYLES, VIDEOS_PER_SUBJECT, VOICES } from "../lib/options";
 
 // "Type a subject, press Go." The four settings start from the saved defaults
@@ -32,7 +33,7 @@ export default function NewSubjectForm({ defaults, onCreated }) {
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch("/api/subjects", {
+      const res = await adminFetch("/api/subjects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt, ...settings }),
