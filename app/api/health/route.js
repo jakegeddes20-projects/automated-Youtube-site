@@ -3,6 +3,9 @@ import { db } from "../../../lib/db";
 
 // Plain-English "is the site set up?" check — shows which piece is missing
 // without revealing any secret. Open /api/health in a browser.
+// Without this Next builds the route once at deploy time and serves that frozen answer.
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const checks = {
     database_url_set: Boolean(process.env.DATABASE_URL),
