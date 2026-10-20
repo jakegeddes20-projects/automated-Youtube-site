@@ -10,6 +10,7 @@ export async function GET() {
   const checks = {
     database_url_set: Boolean(process.env.DATABASE_URL),
     worker_token_set: Boolean(process.env.WORKER_TOKEN),
+    admin_token_set: Boolean((process.env.ADMIN_TOKEN || "").trim()),
     tables_ready: false,
     subjects: null,
   };
@@ -22,6 +23,6 @@ export async function GET() {
       checks.database_error = String(e.message || e).slice(0, 200);
     }
   }
-  const ok = checks.database_url_set && checks.worker_token_set && checks.tables_ready;
+  const ok = checks.database_url_set && checks.worker_token_set && checks.admin_token_set && checks.tables_ready;
   return NextResponse.json({ ok, ...checks }, { status: ok ? 200 : 503 });
 }
